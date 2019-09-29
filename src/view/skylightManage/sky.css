@@ -1,0 +1,39 @@
+.hide{
+    display: none;
+}
+.video{
+    position: relative;
+}
+.video video{
+    display: block;
+}
+.skip{
+    display: block;
+    background: url('../../image/videoAd.png');
+    z-index: 9999;
+    position: absolute;
+    top:50%;
+    left:50%;
+    margin: -89px 0 0 -161px;
+    cursor: pointer;
+    background-size: cover;
+}
+.skip-adver{
+    display: block;
+    width: 70px;
+    height: 20px;
+    line-height: 20px;
+    border-radius: 10px;
+    border:2px solid #317ef3;
+    color:#317ef3;
+    position: absolute;
+    top: 38px;
+    right: 10px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+}
+.hide{
+    display: none !important;
+}

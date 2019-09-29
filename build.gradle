@@ -1,0 +1,13 @@
+clean {
+    new File(projectDir, 'public').deleteDir()
+    //new File(projectDir, 'node_modules').deleteDir()
+}
+
+task npmInstall(type:Exec) {
+    commandLine 'npm', '--registry=https://registry.npm.taobao.org', 'install'
+}
+task npmBuild(type:Exec, dependsOn:npmInstall) {
+    commandLine 'npm', 'run', 'build'
+}
+
+build.dependsOn npmBuild

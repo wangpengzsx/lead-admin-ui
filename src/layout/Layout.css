@@ -1,0 +1,141 @@
+.App {
+    text-align: left;
+}
+
+.App-logo {
+    animation: App-logo-spin infinite 20s linear;
+    height: 80px;
+}
+
+.App-header {
+    background-color: #2f323b;
+    width:100%;
+    height: 50px;
+    color: white;
+}
+
+.App-title {
+    font-size: 1.5em;
+}
+
+.App-intro {
+    font-size: large;
+}
+
+@keyframes App-logo-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+.adx{
+    float:left;
+    width:5%;
+    height:50px;
+    text-align: center;
+    line-height:50px;
+    color:#fff;
+    cursor:pointer;
+}
+.float-l{
+    float:left;
+    width:10.5%;
+    height:50px;
+    text-align: center;
+    line-height:50px;
+    color:#fff;
+    cursor:pointer;
+
+}
+.float-r{
+    cursor:pointer;
+    float:right;
+    width:100px;
+    height:30px;
+    text-align: center;
+    line-height:50px;
+}
+.posi{
+    position:absolute;
+    top:46px;
+    left:-10%;
+    width:120%;
+    background: white;
+    box-shadow: 1px 1px 1px #ccc;
+    border-top:4px solid #fff;
+    z-index: 10000;
+
+    color:#fff;
+
+}
+.posi1{
+    position:absolute;
+    top:0;
+    left:99%;
+    width:120%;
+    background: white;
+    box-shadow: 1px 1px 1px #ccc;
+    border-top:4px solid #fff;
+    z-index: 10000;
+    color:#fff;
+}
+.fu-po{
+    position: relative;
+}
+.float-l-ul{
+    float:left;
+    margin: 0;
+    width:88%;
+    padding-left: 50px;
+
+}
+.lenlogo{
+    position:absolute;
+    top:0;
+    left:0;
+}
+.wid-120{
+    width:100%;
+    height:50px;
+    position:relative;
+}
+.subli{
+    line-height:40px;
+    color:#3a3a3a;
+    font-size:14px;
+    background: #fff;
+}
+.subli:hover{
+    background:#ccc;
+}
+.nav-layout{
+
+    width:100%;
+
+    padding:10px 10px 0px 10px;
+
+}
+.nav120{
+    background-color: #fff;
+    width:100%;
+    height:40px;
+    margin:0 auto;
+    line-height:40px;
+    padding-left:20px;
+    font-size:14px;
+    font-family:'Rugular';
+    border:1px solid #d1cfcf;
+}
+.visibleimg{
+    width: 20px;
+    height: 13.2px;
+}
+.logoimg{
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    height: 62px;
+}
+

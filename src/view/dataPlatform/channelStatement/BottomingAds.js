@@ -1,0 +1,638 @@
+import React from "react";
+import Layout from "../../../layout/Layout";
+import { Checkbox, Pagination, Select} from "antd";
+const Option = Select.Option;
+import moment from 'moment';
+import echarts from "echarts";
+import { observer } from "mobx-react";
+import GeneralizeManageStore from "../../../mobx/generalizeSupport/generalize-manage-store";
+import BottomingAdsStore from "../../../mobx/dataPlatform/bottoming-ads-store";
+import Client from "../../../common/lead-api";
+import ExcellentExport from 'excellentexport';
+import RangePickerCom from '../component/RangePickerCom';
+const headArr = [{ name: '日期', w: '3.84%' },
+	{ name: '打底平台名称', w: '3.84%' },
+	{ name: '媒体名称', w: '3.84%' },
+	{ name: '广告位类型', w: '3.84%' },
+	{ name: '收入', w: '3.84%' },
+	{ name: '收入占比', w: '3.84%' },
+	{ name: 'ADX请求数', w: '3.84%' },
+	{ name: '渠道响应数', w: '3.84%' },
+	{ name: '响应率', w: '3.84%' },
+	{ name: '展现数', w: '3.84%' },
+	{ name: '展现率', w: '3.84%' },
+	{ name: '广告填充率', w: '3.84%' },
+	{ name: '点击数', w: '3.84%' },
+	{ name: '点击率', w: '3.84%' },
+	{ name: 'CPM', w: '3.84%' },
+	{ name: 'CPC', w: '3.84%' },
+	{ name: '第三方请求数', w: '3.84%' },
+	{ name: '第三方响应数', w: '3.84%' },
+	{ name: '第三方展现数', w: '3.84%' },
+	{ name: '第三方展现差额比', w: '3.84%' },
+	{ name: '第三方填充率', w: '3.84%' },
+	{ name: '第三方CPM', w: '3.84%' },
+	{ name: '预估CPM', w: '3.84%' },
+	{ name: '第三方CPM差额比', w: '3.84%' },
+	{ name: '第三方点击数', w: '3.84%' },
+	{ name: '第三方点击率', w: '3.84%' },
+	{ name: '第三方CPC', w: '3.84%' },
+]
+const typeArr = [
+	{
+		name: 'banner广告',
+		value: 'BANNER',
+	},
+	{
+		name: '插屏广告',
+		value: 'POPUP',
+	},
+	{
+		name: '开屏广告',
+		value: 'OPENSCREEN',
+	},
+	{
+		name: '原生广告',
+		value: 'NATIVE',
+	},
+	{
+		name: '视频广告',
+		value: 'VIDEO',
+	}
+]
+const DuibiArr=[
+	{name:'收入',value:'income'},
+	{name:'收入占比',value:'income_rate'},
+	{name:'ADX请求数',value:'requests'},
+	{name:'渠道响应数',value:'responses'},
+	{name:'响应率',value:'response_rate'},
+	{name:'展现数',value:'displays'},
+	{name:'展现率',value:'display_rate'},
+	{name:'广告填充率',value:'filling_rate'},
+	{name:'点击数',value:'clicks'},
+	{name:'点击率',value:'ctr'},
+	{name:'CPM',value:'cpm'},
+	{name:'CPC',value:'cpc'},
+]
+@observer
+export default class BottomingAds extends React.Component {
+	constructor() {
+		super()
+		this.state = {
+			size: 5,
+			startValue: moment().startOf('day'),
+			endValue: moment().endOf('day'),
+			endOpen: false,
+			adType:'',
+			fallbackDspId:'',
+			compareValue1:'ADX请求数',
+			compareValue2:'展现数',
+			pageNo:1,
+			pageSize:10,
+			typeArr:[],
+			fallbackDspArr:[],
+			meitiArr:[],
+			geziWidth:'4.16%',//总共27条，24条是4.16%
+			typeAll:false,
+			fallbackDspAll:false
+		}
+	}
+	componentWillMount(){
+		GeneralizeManageStore.getAppArr();
+		GeneralizeManageStore.getOursSpace();
+		GeneralizeManageStore.getAdSpaceSizes();
+		let {pageNo,pageSize,startValue,endValue,adType,fallbackDspId,compareValue1,compareValue2}=this.state;
+		let startStr=this.timeStr(startValue),endStr=this.timeStr(endValue);
+		BottomingAdsStore.getFallbackDsps();
+		BottomingAdsStore.getDownloadList(pageNo,pageSize,startStr,endStr,adType,fallbackDspId,'',compareValue1,compareValue2,this.callback.bind(this));
+	}
+	callback(){
+		this.echatsShow();
+	}
+	timeStr(startValue){
+		if (startValue) {
+			return Client.formatDate(startValue.valueOf()).replace('-', '').replace('-', '');
+		}else{
+			return''
+		}
+	}
+	onPageChange(e){
+		this.setState({pageNo:e});
+		this.refreshList();
+	}
+	onShowSizeChange(p,e){
+		this.setState({pageNo:1,pageSize:e});
+		this.refreshList();
+	}
+	refreshList(){
+		setTimeout(()=>{
+			let {pageNo,pageSize,startValue,endValue,fallbackDspArr,typeArr,meitiArr,compareValue1,compareValue2}=this.state;
+			let startStr = this.timeStr(startValue), endStr = this.timeStr(endValue);
+			let fallbackDspId = this.arrStr(fallbackDspArr);
+			let adType = this.arrStr(typeArr);
+			let appId=this.arrStr(meitiArr);
+			BottomingAdsStore.getDownloadList(pageNo,pageSize,startStr,endStr,adType,fallbackDspId,appId,compareValue1,compareValue2,this.callback.bind(this))
+		},300)
+	}
+	echatsShow() {
+		let { daysX ,a1,a2,isRate1,isRate2} = BottomingAdsStore
+		let maxappreg = Client.calMax(a1);//a1
+		let maxactive = Client.calMax(a2);//a2
+		let interval_left=maxappreg/5;//
+		let interval_right=maxactive/5;//
+		let myChart1 = echarts.init(document.getElementById('dataEchart'));
+		let option1 = {
+			xAxis: {
+				type: 'category',
+				boundaryGap: false,
+				data: [...daysX],
+				axisLabel: {
+					interval: 0,
+					rotate: daysX.length > 7 ? 40 : 0
+				}
+			},
+			grid: {
+				left: '3%',
+				right: '4%',
+				bottom: '3%',
+				containLabel: true
+			},
+			yAxis: [
+				{
+					name:this.state.compareValue1,
+					type: 'value',
+					max:maxappreg,
+					splitNumber:5,
+					interval:interval_left,
+					axisLabel: {
+						show: true,
+						interval: 'auto',
+						formatter: isRate1?'{value} %':'{value}'
+					},
+				},
+				{
+					name:this.state.compareValue2,
+					type:'value',
+					max:maxactive,
+					splitNumber:5,
+					interval:interval_right,
+					axisLabel: {
+						show: true,
+						interval: 'auto',
+						formatter: isRate2?'{value} %':'{value}'
+					},
+				}
+			],
+			legend: {
+				data: [this.state.compareValue1, this.state.compareValue2]
+			},
+			tooltip: {
+				trigger: 'axis',
+				formatter:function(params) {
+					var relVal = params[0].name;
+					for (var i = 0, l = params.length; i < l; i++) {
+						let str='';
+						if(i==0){
+							str='<div class="yuanqiu" style="background:#7d0022; "></div>';
+						}else{
+							str='<div class="yuanqiu" style="background:#4fc1e9; "></div>';
+						}
+						if(params[i].seriesName.indexOf('率')!=-1||params[i].seriesName.indexOf('比')!=-1) {
+							relVal += '<br/>'+str + params[i].seriesName + ' : ' + params[i].value+"%";
+						}else{
+							relVal += '<br/>'+str + params[i].seriesName + ' : ' + params[i].value;
+						}
+					}
+					return relVal;
+				}
+			},
+			series: [
+				{
+					name: this.state.compareValue1,
+					type: 'line',
+					lineStyle: {
+						normal: {
+							width: 1,
+							opacity: 0.7
+						}
+					},
+					data: [...a1],
+					areaStyle: {
+						normal: {
+							opacity: 0.25
+						}
+					},
+					smooth: true,
+				},
+				{
+					name: this.state.compareValue2,
+					type: 'line',
+					yAxisIndex:1,
+					lineStyle: {
+						normal: {
+							width: 1,
+							opacity: 0.7
+						}
+					},
+					data: [...a2],
+					areaStyle: {
+						normal: {
+							opacity: 0.25
+						}
+					},
+					smooth: true,
+				}
+			],
+			color: ['#7d0022', '#4fc1e9'],
+		};
+		console.log(option1);
+		myChart1.setOption(option1, true);
+		window.addEventListener("resize", () => { myChart1.resize(); });
+	}
+	arrStr(arr){
+		let str=''
+		for(let i=0;i<arr.length;i++){
+			if(i==arr.length-1){
+				str+=arr[i];
+			}else{
+				str+=arr[i]+',';
+			}
+		}
+		return str;
+	}
+	query() {
+		this.setState({
+			pageNo:1
+		})
+		let {pageSize,startValue, endValue,typeArr,fallbackDspArr,meitiArr,compareValue1,compareValue2} = this.state;
+		let startStr = this.timeStr(startValue), endStr = this.timeStr(endValue);
+		let fallbackDspId =this.arrStr(fallbackDspArr);
+		let adType=this.arrStr(typeArr);
+		let appId=this.arrStr(meitiArr);
+		let arr=[adType,fallbackDspId,appId];
+		let num=0;
+		for(let i=0;i<arr.length; i++){
+			if(arr[i]==''){
+				num+=1;
+			}
+		}
+		this.setState({
+			geziWidth:100/(27-num)+'%'
+		})
+		BottomingAdsStore.getDownloadList(1,pageSize,startStr, endStr,adType,fallbackDspId,appId,compareValue1,compareValue2,this.callback.bind(this));
+		BottomingAdsStore.storeTypeArr=this.state.typeArr;
+		BottomingAdsStore.storeFallbackDspArr=this.state.fallbackDspArr;
+		BottomingAdsStore.storeMeitiDspArr=this.state.meitiArr;
+	}
+	componentWillUnmount(){
+		BottomingAdsStore.storeTypeArr=[];
+		BottomingAdsStore.storeFallbackDspArr=[];
+	}
+	onCompareChange1(e) {
+		this.setState({
+			compareValue1: e
+		})
+		setTimeout(() => {
+			this.query()
+		}, 300)
+	}
+	onCompareChange2(e) {
+		this.setState({
+			compareValue2: e
+		})
+		setTimeout(() => {
+			this.query()
+		}, 300)
+	}
+	downloadExcel(e) {
+		return ExcellentExport.excel(e.target, 'mediadatatable', 'Sheet Name Here');
+	}
+	onTypeChange(e) {
+		this.setState({ typeArr: e });
+	}
+	onFallbackDspChange(e) {
+		this.setState({ fallbackDspArr: e });
+	}
+	onMeitiChange(e){
+		this.setState({ meitiArr: e });
+	}
+	onTypeAllChange(e){
+		if(e.target.value){
+			this.setState({
+				typeArr:[]
+			})
+		}else{
+			let arr=[];
+			for(let i=0;i<typeArr.length;i++){
+				arr.push(typeArr[i].value);
+			}
+			this.setState({
+				typeArr:arr
+			})
+		}
+		this.setState({
+			typeAll:!e.target.value
+		})
+	}
+	onFallbackDspAllChange(e){
+		if(e.target.value){
+			this.setState({
+				fallbackDspArr:[]
+			})
+		}else{
+			let{FallbackDsps}=BottomingAdsStore;
+			let arr=[];
+			for(let i=0;i<FallbackDsps.length;i++){
+				arr.push(FallbackDsps[i].id);
+			}
+			this.setState({
+				fallbackDspArr:arr
+			})
+		}
+		this.setState({
+			fallbackDspAll:!e.target.value
+		})
+	}
+	onMeitiAllChange(e){
+		if(e.target.value){
+			this.setState({
+				meitiArr:[]
+			})
+		}else{
+			let {appArr}=GeneralizeManageStore;
+			let arr=[];
+			for(let i=0;i<appArr.length;i++){
+				if(appArr[i].APP_ID){
+					arr.push('@'+appArr[i].APP_ID);
+				}else{
+					arr.push('#'+appArr[i].APP_GROUP_ID);
+				}
+			}
+			this.setState({
+				meitiArr:arr
+			})
+		}
+	}
+	rangeChange(startValue,endValue){
+		this.setState({
+			startValue:startValue,
+			endValue:endValue
+		})
+	}
+	render() {
+		let {appArr}=GeneralizeManageStore;
+		let {DownloadList,total,FallbackDsps,storeTypeArr,storeFallbackDspArr,storeMeitiDspArr}=BottomingAdsStore;
+		return (
+			<div>
+				<Layout history={this.props.history} />
+				<div className="content">
+					<div className="contentBulk3" style={{ paddingTop: 10 }}>
+						<div className="listROwlet2">
+							<div className="form-left" style={{ width: '30%' }}>
+								日期：
+							</div>
+							<div className="form-right" style={{ width: '60%' }}>
+								<RangePickerCom call={(startValue,endValue)=>this.rangeChange(startValue,endValue)}/>
+							</div>
+						</div>
+						<div className="listROwlet2" style={{minHeight:60,lineHeight: '30px'}}>
+							<div className="form-left" style={{ width: '30%' }}>
+								广告类型：
+							</div>
+							<div className="form-right-multiple" style={{ width: '50%' }}>
+								<Checkbox onChange={this.onTypeAllChange.bind(this)}
+										  indeterminate={this.state.typeArr.length!=0&&this.state.typeArr.length<typeArr.length}
+										  checked={this.state.typeArr.length==typeArr.length} value={this.state.typeArr.length==typeArr.length}/>
+								<Select
+									mode="multiple"
+									placeholder="请选择广告类型"
+									value={this.state.typeArr}
+									maxTagCount={1}
+									onChange={this.onTypeChange.bind(this)}
+									style={{ width: '100%' ,marginLeft:10}}
+								>
+									{typeArr.map((i, k) => (
+										<Option value={i.value} key={k}>{i.name}</Option>
+									))}
+								</Select>
+							</div>
+						</div>
+						<div className="listROwlet2" style={{minHeight:60,lineHeight: '30px'}}>
+							<div className="form-left" style={{ width: '30%' }}>
+								媒体：
+							</div>
+							<div className="form-right-multiple" style={{ width: '50%' }}>
+								<Checkbox onChange={this.onMeitiAllChange.bind(this)}
+										  indeterminate={this.state.meitiArr.length!=0&&this.state.meitiArr.length<appArr.length}
+										  checked={this.state.meitiArr.length==appArr.length} value={this.state.meitiArr.length==appArr.length}/>
+								<Select
+									mode="multiple"
+									placeholder="请选择媒体"
+									value={this.state.meitiArr}
+									maxTagCount={1}
+									onChange={this.onMeitiChange.bind(this)}
+									style={{ width: '100%' ,marginLeft:10}}
+								>
+									{appArr.map((i, k) => (
+										<Option value={i.APP_ID?'@'+i.APP_ID:'#'+i.APP_GROUP_ID} key={k}>{i.NAME}</Option>
+									))}
+								</Select>
+							</div>
+						</div>
+						<div className="listROwlet2" style={{minHeight:60,lineHeight: '30px'}}>
+							<div className="form-left" style={{ width: '30%' }}>
+								广告平台：
+							</div>
+							<div className="form-right-multiple" style={{ width: '50%' }}>
+								<Checkbox onChange={this.onFallbackDspAllChange.bind(this)}
+										  indeterminate={this.state.fallbackDspArr.length!=0&&this.state.fallbackDspArr.length<FallbackDsps.length}
+										  checked={this.state.fallbackDspArr.length==FallbackDsps.length} value={this.state.fallbackDspArr.length==FallbackDsps.length}/>
+								<Select
+									mode="multiple"
+									placeholder="请选择渠道"
+									value={this.state.fallbackDspArr}
+									maxTagCount={1}
+									onChange={this.onFallbackDspChange.bind(this)}
+									style={{ width: '100%' ,marginLeft:10}}
+								>
+									{FallbackDsps.map((i, k) => (
+										<Option value={i.id} key={k}>{i.name}</Option>
+									))}
+								</Select>
+							</div>
+						</div>
+					</div>
+					<div style={{ paddingBottom: 10 }}>
+						<button className="filtrateBtn" onClick={() => { this.query() }}>
+							查询
+						</button>
+					</div>
+					<div className="list-haed">
+						<span className="dah1">数据趋势</span>
+					</div>
+					<div className="contentBulk">
+						<div style={{ width: '100%', height: 30 }}>
+							<div style={{ width: '20%', float: 'left' }}>
+							</div>
+							<div style={{ width: '30%', float: 'right' }}>
+								<Select value={this.state.compareValue1} style={{ width: 120 }} onChange={(e) => this.onCompareChange1(e)} size="small">
+									{
+										DuibiArr.map((i, k) => (
+											<Option value={i.name} key={k} disabled={i.name == this.state.compareValue2}>{i.name}</Option>
+										))
+									}
+								</Select>
+								&nbsp;&nbsp;对比&nbsp;&nbsp;
+								<Select value={this.state.compareValue2} style={{ width: 120 }} onChange={(e) => this.onCompareChange2(e)} size="small">
+									{
+										DuibiArr.map((i, k) => (
+											<Option value={i.name} key={k} disabled={i.name == this.state.compareValue1}>{i.name}</Option>
+										))
+									}
+								</Select>
+							</div>
+						</div>
+						<div style={{ width: '100%', height: 300 }} id='dataEchart'></div>
+					</div>
+					<div className="contentBulk1">
+						<div className="con-head" style={{ padding: 10 }}>
+							<a className="borderBtn" download="somedata.xls" href="#"
+							   onClick={(e) => this.downloadExcel(e)}>
+								下载报表
+							</a>
+						</div>
+						<div style={{ width: '100%', overflowX: 'scroll' }}>
+							<table style={{ width: '200%' }} id="mediadatatable">
+								<thead>
+								<tr className="table-head1" >
+									{
+										headArr.map((i, k) => {
+											if(i.name=='广告位类型'&&storeTypeArr.length==0){
+												return null
+											}else if(i.name=='打底平台名称'&&storeFallbackDspArr.length==0){
+												return null
+											}else if(i.name=='媒体名称'&&storeMeitiDspArr.length==0){
+												return null
+											}else {
+												return(
+													<th key={k} style={{ width:this.state.geziWidth }} className="gezi" title={i.name}>
+														{i.name}
+													</th>
+												)
+											}
+										})
+									}
+								</tr>
+								</thead>
+								<tbody>
+								{
+									DownloadList.map((i, k) => (
+										<tr className="table-body" key={k}>
+											<td className="gezi" title={i.event_date} style={{ width: this.state.geziWidth }}>{/*日期*/}
+												{i.event_date}
+											</td>
+											{storeFallbackDspArr.length!=0?(
+												<td className="gezi" title={i.fallback_name} style={{ width: this.state.geziWidth }}>{/*打底平台名称*/}
+													{i.event_date=='合计'?'--':Client.formatListData(i.fallback_name)}
+												</td>
+											):null}
+											{storeMeitiDspArr.length!=0?(
+												<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*媒体名称*/}
+													{i.event_date=='合计'?'--':Client.formatListData(i.app_group_id==null?i.app_name:i.group_name)}
+												</td>
+											):null}
+											{storeTypeArr.length!=0?(
+												<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*广告类型*/}
+													{i.event_date=='合计'?'--':Client.adTypeEffect(Client.formatListData(i.ad_type))}
+												</td>
+											):null}
+											<td className="gezi" title={i.income} style={{ width: this.state.geziWidth }}>{/*收入*/}
+												{Client.formatListData(i.income)}
+											</td>
+											<td className="gezi" title={i.income_rate} style={{ width: this.state.geziWidth }}>{/*收入占比*/}
+												{Client.addRate(i.income_rate)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*ADX请求数*/}
+												{Client.formatListData(i.requests)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*渠道响应数*/}
+												{Client.formatListData(i.responses)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*响应率*/}
+												{Client.addRate(i.response_rate) }
+											</td>
+											<td className="gezi" title={i.displays} style={{ width: this.state.geziWidth }}>{/*展现数*/}
+												{Client.formatListData(i.displays)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*展现率*/}
+												{Client.addRate(i.display_rate)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*广告填充率*/}
+												{Client.addRate(i.filling_rate)}
+											</td>
+											<td className="gezi" title={i.clicks} style={{ width: this.state.geziWidth }}>{/*点击数*/}
+												{Client.formatListData(i.clicks)}
+											</td>
+											<td className="gezi" title={i.ctr} style={{ width: this.state.geziWidth }}>{/*点击率*/}
+												{Client.addRate(i.ctr)}
+											</td>
+											<td className="gezi" title={i.cpm} style={{ width: this.state.geziWidth }}>{/*CPM*/}
+												{Client.formatListData(i.cpm)}
+											</td>
+											<td className="gezi" title={i.cpc} style={{ width: this.state.geziWidth }}>{/*CPC*/}
+												{Client.formatListData(i.cpc)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方请求数*/}
+												{Client.formatListData(i.other_request)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方响应数*/}
+												{Client.formatListData(i.other_response)}
+											</td>
+											<td className="gezi" title={i.other_pv} style={{ width: this.state.geziWidth }}>{/*第三方展现数*/}
+												{Client.formatListData(i.other_pv)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方展现差额比*/}
+												{Client.addRate(i.displays_diff)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方填充率*/}
+												{Client.addRate(i.other_display_rate)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方cpm*/}
+												{Client.formatListData(i.other_cpm)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*预估cpm*/}
+												{i.regular_price?i.regular_price:i.estimate_price}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*预估CPM差额比*/}
+												{i.regular_price_diff?i.regular_price_diff:i.estimate_price_diff}
+											</td>
+											<td className="gezi" title={i.other_click} style={{ width: this.state.geziWidth }}>{/*第三方点击数*/}
+												{Client.formatListData(i.other_click)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方点击率*/}
+												{Client.addRate(i.other_click_rate)}
+											</td>
+											<td className="gezi"  style={{ width: this.state.geziWidth }}>{/*第三方cpc*/}
+												{Client.formatListData(i.other_cpc)}
+											</td>
+										</tr>
+									))
+								}
+								</tbody>
+							</table>
+						</div>
+						<div className='con-head'>
+							<Pagination
+								pageSizeOptions={['5','10','20','50','100']}
+								showSizeChanger
+								defaultPageSize={this.state.pageSize}
+								current={this.state.pageNo}
+								onChange={this.onPageChange.bind(this)}
+								onShowSizeChange={this.onShowSizeChange.bind(this)} defaultCurrent={1} total={total} />
+						</div>
+					</div>
+				</div>
+			</div>
+		)
+	}
+}
